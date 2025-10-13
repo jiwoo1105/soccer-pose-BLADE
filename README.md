@@ -553,21 +553,6 @@ similarity = max(0, 100 - avg_diff * 2)
 **A:** 네! 농구, 테니스, 골프 등 다양한 스포츠의 모션 분석에 활용 가능합니다. `config.py`에서 관심 관절/분절을 조정하면 됩니다.
 </details>
 
----
-
-## 📝 라이센스
-
-이 프로젝트는 **MIT 라이센스** 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
-
-```
-MIT License
-
-Copyright (c) 2025 PARK JIWOO
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction...
-```
 
 ---
 
@@ -575,11 +560,10 @@ in the Software without restriction...
 
 **개발자**: PARK JIWOO
 
-- 📧 Email: your.email@example.com
+- 📧 Email: psskej00@daum.net
 - 🐙 GitHub: https://github.com/jiwoo1105
-- 💼 LinkedIn: [Your LinkedIn](https://linkedin.com/in/your-profile)
 
-**프로젝트 링크**: [https://github.com/your-username/soccer_motion_analysis](https://github.com/your-username/soccer_motion_analysis)
+**프로젝트 링크**: [https://github.com/jiwoo1105/soccer_motion_analysis](https://github.com/jiwoo1105/soccer_motion_analysis)
 
 ---
 
