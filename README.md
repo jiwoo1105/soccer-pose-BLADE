@@ -459,7 +459,7 @@ similarity = max(0, 100 - avg_diff * 2)
 
 ### 📊 테스트 환경
 
-- **CPU**: Apple M1 / Intel i7
+- **CPU**: Apple M4 pro / Intel i7
 - **영상**: 1080p, 30fps
 - **처리 속도**: 약 15-20fps (실시간의 50-66%)
 - **정확도**: 정면 85%, 측면 92%, 측후방 90%
