@@ -23,7 +23,7 @@ MediaPipe 연결 구조:
 
 import cv2
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional, List
 
 
 class SkeletonDrawer:
@@ -212,5 +212,108 @@ class SkeletonDrawer:
 
         # STEP 5: 텍스트 그리기
         cv2.putText(output, text, position, font, font_scale, color, thickness)
+
+        return output
+
+    def draw_ball_bbox(self, frame: np.ndarray,
+                      ball_bbox: Optional[Tuple[int, int, int, int]],
+                      color: Tuple[int, int, int] = (0, 255, 255),
+                      thickness: int = 3) -> np.ndarray:
+        """
+        프레임에 공 바운딩 박스 그리기
+
+        Args:
+            frame: BGR 이미지
+            ball_bbox: (x1, y1, x2, y2) 바운딩 박스 좌표, None이면 그리지 않음
+            color: 박스 색상 (BGR), 기본값 노란색
+            thickness: 선 두께
+
+        Returns:
+            np.ndarray: 바운딩 박스가 그려진 이미지
+        """
+        if ball_bbox is None:
+            return frame
+
+        output = frame.copy()
+        x1, y1, x2, y2 = ball_bbox
+
+        # 바운딩 박스 사각형 그리기
+        cv2.rectangle(output, (x1, y1), (x2, y2), color, thickness)
+
+        return output
+
+    def draw_ball_trajectory(self, frame: np.ndarray,
+                            trajectory: List[Tuple[int, int]],
+                            color: Tuple[int, int, int] = (255, 200, 0),
+                            thickness: int = 2) -> np.ndarray:
+        """
+        프레임에 공의 궤적 그리기
+
+        Args:
+            frame: BGR 이미지
+            trajectory: [(x, y), ...] 공의 이동 경로 좌표 리스트
+            color: 궤적 색상 (BGR), 기본값 하늘색
+            thickness: 선 두께
+
+        Returns:
+            np.ndarray: 궤적이 그려진 이미지
+        """
+        if len(trajectory) < 2:
+            return frame
+
+        output = frame.copy()
+
+        # 연속된 점들을 선으로 연결
+        for i in range(len(trajectory) - 1):
+            pt1 = (int(trajectory[i][0]), int(trajectory[i][1]))
+            pt2 = (int(trajectory[i+1][0]), int(trajectory[i+1][1]))
+            cv2.line(output, pt1, pt2, color, thickness)
+
+        return output
+
+    def draw_touch_highlight(self, frame: np.ndarray,
+                            ball_position: Optional[Tuple[int, int]],
+                            text: str = "TOUCH!") -> np.ndarray:
+        """
+        터치 순간 하이라이트 표시
+
+        Args:
+            frame: BGR 이미지
+            ball_position: (x, y) 공의 위치, None이면 화면 중앙에 표시
+            text: 표시할 텍스트
+
+        Returns:
+            np.ndarray: 하이라이트가 그려진 이미지
+        """
+        output = frame.copy()
+        h, w, _ = frame.shape
+
+        # 공 위치에 빨간 원 그리기
+        if ball_position is not None:
+            center = (int(ball_position[0]), int(ball_position[1]))
+            cv2.circle(output, center, 30, (0, 0, 255), 3)
+
+        # "TOUCH!" 텍스트 표시 (화면 상단)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1.5
+        thickness = 4  # 굵게 표시
+        text_color = (0, 0, 255)  # 빨간색
+
+        # 텍스트 크기 측정
+        (text_w, text_h), _ = cv2.getTextSize(text, font, font_scale, thickness)
+
+        # 화면 중앙 상단에 배치
+        text_x = (w - text_w) // 2
+        text_y = 60
+
+        # 배경 박스
+        cv2.rectangle(output,
+                     (text_x - 10, text_y - text_h - 10),
+                     (text_x + text_w + 10, text_y + 10),
+                     (255, 255, 255), -1)
+
+        # 텍스트
+        cv2.putText(output, text, (text_x, text_y), font,
+                   font_scale, text_color, thickness)
 
         return output

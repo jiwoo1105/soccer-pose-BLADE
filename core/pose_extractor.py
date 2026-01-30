@@ -43,6 +43,13 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 from tqdm import tqdm
 
+try:
+    from .ball_detector import BallDetector
+    BALL_DETECTION_AVAILABLE = True
+except ImportError:
+    BALL_DETECTION_AVAILABLE = False
+    BallDetector = None
+
 
 @dataclass
 class PoseFrame:
@@ -63,18 +70,32 @@ class PoseFrame:
                    - 1.0: 매우 확신함
                    - 0.0: 가려져서 보이지 않음
                    - 0.5 이하: 신뢰도 낮음
+        ball_position: (x, y) 공의 2D 픽셀 좌표, 탐지 실패 시 None
+                      - x: 이미지 내 x 좌표 (픽셀)
+                      - y: 이미지 내 y 좌표 (픽셀)
+        ball_bbox: (x1, y1, x2, y2) 공의 바운딩 박스, 탐지 실패 시 None
+                  - x1, y1: 박스 왼쪽 위 모서리
+                  - x2, y2: 박스 오른쪽 아래 모서리
+        frame_width: 프레임 이미지 너비 (픽셀)
+        frame_height: 프레임 이미지 높이 (픽셀)
 
     사용 예시:
         >>> pose_frame = pose_frames[0]
         >>> left_knee = pose_frame.world_landmarks[25]  # 왼쪽 무릎
         >>> if pose_frame.visibility[25] > 0.5:
         >>>     print(f"무릎 위치: {left_knee}")
+        >>> if pose_frame.ball_position:
+        >>>     print(f"공 위치: {pose_frame.ball_position}")
     """
     frame_number: int
     timestamp: float
     landmarks: np.ndarray  # (33, 3) - normalized coordinates
     world_landmarks: np.ndarray  # (33, 3) - real world coordinates in meters
     visibility: np.ndarray  # (33,) - visibility scores
+    ball_position: Optional[tuple] = None  # (x, y) - ball 2D position in pixels
+    ball_bbox: Optional[tuple] = None  # (x1, y1, x2, y2) - ball bounding box
+    frame_width: int = 0  # frame width in pixels
+    frame_height: int = 0  # frame height in pixels
 
 
 class PoseExtractor:
@@ -94,7 +115,9 @@ class PoseExtractor:
     def __init__(self,
                  model_complexity: int = 2,
                  min_detection_confidence: float = 0.5,
-                 min_tracking_confidence: float = 0.5):
+                 min_tracking_confidence: float = 0.5,
+                 detect_ball: bool = True,
+                 ball_detector_config: Optional[Dict] = None):
         """
         PoseExtractor 초기화
 
@@ -107,9 +130,11 @@ class PoseExtractor:
                                      사람을 처음 찾을 때의 임계값
             min_tracking_confidence: 최소 추적 신뢰도 (0.0-1.0)
                                     이미 찾은 사람을 계속 따라갈 때의 임계값
+            detect_ball: 공 탐지 활성화 여부 (YOLOv8 사용)
+            ball_detector_config: 공 탐지 설정 딕셔너리
 
         사용 예시:
-            >>> extractor = PoseExtractor(model_complexity=2)
+            >>> extractor = PoseExtractor(model_complexity=2, detect_ball=True)
             >>> pose_frames = extractor.extract_from_video("soccer.mp4")
         """
         # MediaPipe Pose 모듈 초기화
@@ -124,6 +149,19 @@ class PoseExtractor:
             enable_segmentation=False,  # 사람 분할 마스크 비활성화 (속도 향상)
             smooth_landmarks=True  # 랜드마크 스무딩 활성화 (떨림 감소)
         )
+
+        # 공 탐지 초기화
+        self.detect_ball = detect_ball
+        self.ball_detector = None
+        if detect_ball:
+            if BALL_DETECTION_AVAILABLE:
+                if ball_detector_config:
+                    self.ball_detector = BallDetector(**ball_detector_config)
+                else:
+                    self.ball_detector = BallDetector()
+            else:
+                print("Warning: BallDetector not available. Install ultralytics: pip install ultralytics")
+                self.detect_ball = False
 
     def extract_from_video(self, video_path: str) -> List[PoseFrame]:
         """
@@ -158,13 +196,15 @@ class PoseExtractor:
         # 비디오 메타정보 가져오기
         fps = cap.get(cv2.CAP_PROP_FPS)  # 초당 프레임 수
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # 총 프레임 수
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # 프레임 너비
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))  # 프레임 높이
 
         # 결과 저장용 리스트
         pose_frames = []
         frame_number = 0
 
         print(f"Extracting poses from {video_path}")
-        print(f"Total frames: {total_frames}, FPS: {fps}")
+        print(f"Total frames: {total_frames}, FPS: {fps}, Size: {frame_width}x{frame_height}")
 
         # STEP 2: 진행 상황 표시를 위한 progress bar
         with tqdm(total=total_frames, desc="Processing frames") as pbar:
@@ -193,13 +233,27 @@ class PoseExtractor:
                     world_landmarks = self._extract_landmarks(results.pose_world_landmarks)
                     visibility = self._extract_visibility(results.pose_landmarks)
 
+                    # 공 탐지 (활성화된 경우)
+                    ball_position = None
+                    ball_bbox = None
+                    if self.detect_ball and self.ball_detector:
+                        ball_result = self.ball_detector.detect_ball_with_box(frame)
+                        if ball_result:
+                            # (center_x, center_y, x1, y1, x2, y2)
+                            ball_position = (ball_result[0], ball_result[1])
+                            ball_bbox = (ball_result[2], ball_result[3], ball_result[4], ball_result[5])
+
                     # PoseFrame 객체 생성
                     pose_frame = PoseFrame(
                         frame_number=frame_number,
                         timestamp=timestamp,
                         landmarks=landmarks,
                         world_landmarks=world_landmarks,
-                        visibility=visibility
+                        visibility=visibility,
+                        ball_position=ball_position,
+                        ball_bbox=ball_bbox,
+                        frame_width=frame_width,
+                        frame_height=frame_height
                     )
 
                     # 리스트에 추가
@@ -211,7 +265,13 @@ class PoseExtractor:
         # STEP 7: 비디오 캡처 객체 해제
         cap.release()
 
-        print(f"Successfully extracted {len(pose_frames)} frames with poses")
+        # 공 탐지 통계
+        if self.detect_ball:
+            ball_detected_count = sum(1 for pf in pose_frames if pf.ball_position is not None)
+            print(f"Successfully extracted {len(pose_frames)} frames with poses")
+            print(f"Ball detected in {ball_detected_count}/{len(pose_frames)} frames ({100*ball_detected_count/len(pose_frames):.1f}%)")
+        else:
+            print(f"Successfully extracted {len(pose_frames)} frames with poses")
 
         return pose_frames
 
@@ -304,13 +364,24 @@ class PoseExtractor:
             world_landmarks = self._extract_landmarks(results.pose_world_landmarks)
             visibility = self._extract_visibility(results.pose_landmarks)
 
+            # 공 탐지
+            ball_position = None
+            ball_bbox = None
+            if self.detect_ball and self.ball_detector:
+                ball_result = self.ball_detector.detect_ball_with_box(frame)
+                if ball_result:
+                    ball_position = (ball_result[0], ball_result[1])
+                    ball_bbox = (ball_result[2], ball_result[3], ball_result[4], ball_result[5])
+
             # PoseFrame 객체 반환
             return PoseFrame(
                 frame_number=0,
                 timestamp=0.0,
                 landmarks=landmarks,
                 world_landmarks=world_landmarks,
-                visibility=visibility
+                visibility=visibility,
+                ball_position=ball_position,
+                ball_bbox=ball_bbox
             )
 
         # 포즈 감지 실패

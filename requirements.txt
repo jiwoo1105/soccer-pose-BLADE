@@ -1,8 +1,7 @@
-opencv-python==4.8.1.78
-mediapipe==0.10.8
-numpy==1.24.3
-pandas==2.0.3
-matplotlib==3.7.2
-seaborn==0.12.2
-scipy==1.11.2
-tqdm==4.66.1
+opencv-python>=4.8.0
+mediapipe>=0.10.0
+numpy>=1.24.0
+ultralytics>=8.0.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+tqdm>=4.65.0

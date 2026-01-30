@@ -8,6 +8,7 @@ from .math_utils import (
     angle_with_vertical,
     angle_with_horizontal,
     calculate_angle,
+    calculate_angle_3d,
     smooth_angles
 )
 
@@ -16,5 +17,6 @@ __all__ = [
     'angle_with_vertical',
     'angle_with_horizontal',
     'calculate_angle',
+    'calculate_angle_3d',
     'smooth_angles'
 ]

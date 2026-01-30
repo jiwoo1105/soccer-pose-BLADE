@@ -1,10 +1,9 @@
 # core/__init__.py
 """
-Core modules for pose extraction and video processing
+Core modules for soccer motion analysis
 """
 
-from .pose_extractor import PoseExtractor
-from .video_processor import VideoProcessor
-from .coordinate_system import CoordinateSystem
+from .pose_extractor import PoseExtractor, PoseFrame
+from .ball_detector import BallDetector
 
-__all__ = ['PoseExtractor', 'VideoProcessor', 'CoordinateSystem']
+__all__ = ['PoseExtractor', 'PoseFrame', 'BallDetector']
