@@ -28,6 +28,13 @@ output/
 *.avi
 *.mov
 
+# Large assets
+input/
+models/
+model_transfer/
+smpl/
+*.pt
+
 # Jupyter Notebook
 .ipynb_checkpoints
 

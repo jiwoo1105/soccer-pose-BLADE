@@ -1,5 +1,1 @@
 *.pt filter=lfs diff=lfs merge=lfs -text
-models/** filter=lfs diff=lfs merge=lfs -text
-model_transfer/** filter=lfs diff=lfs merge=lfs -text
-smpl/** filter=lfs diff=lfs merge=lfs -text
-input/** filter=lfs diff=lfs merge=lfs -text
