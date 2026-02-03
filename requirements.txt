@@ -1,7 +1,20 @@
+# 기본 의존성
 opencv-python>=4.8.0
-mediapipe>=0.10.0
 numpy>=1.24.0
-ultralytics>=8.0.0
 scipy>=1.10.0
 matplotlib>=3.7.0
 tqdm>=4.65.0
+
+# 포즈 추출
+mediapipe>=0.10.0,<0.10.10  # 0.10.10+ 버전은 API 변경됨
+
+# 객체 탐지 (YOLOv8/v9)
+ultralytics>=8.1.0
+
+# BLADE 관련 (선택적)
+torch>=2.0.1
+# pytorch3d  # BLADE 사용시 필요
+# smplx>=0.1.28  # BLADE 사용시 필요
+
+# Kalman 필터 (하이브리드 볼 추적)
+filterpy>=1.4.5

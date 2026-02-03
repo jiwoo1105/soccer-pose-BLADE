@@ -33,3 +33,6 @@ output/
 
 # Environment variables
 .env
+
+# Local clones
+my_blade_repo/

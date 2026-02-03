@@ -1,0 +1,3 @@
+[submodule "blade"]
+	path = blade
+	url = https://github.com/NVlabs/blade.git
